@@ -1,11 +1,10 @@
 #!/bin/bash
 set -e
 
+# --- 1. Start Qdrant Edge Bridge (shared by all agents) ---
 echo "starting qdrant-edge-bridge on port ${QDRANT_BRIDGE_PORT:-6333}..."
 python3 /opt/qdrant-edge-bridge/server.py &
-QDRANT_PID=$!
 
-# Wait for qdrant bridge to be ready
 for i in $(seq 1 30); do
     if curl -sf http://127.0.0.1:${QDRANT_BRIDGE_PORT:-6333}/docs 2>/dev/null; then
         echo "qdrant-edge-bridge ready"
@@ -14,23 +13,34 @@ for i in $(seq 1 30); do
     sleep 0.5
 done
 
-echo "starting nemoclaw on port ${PORT:-18789}..."
+# --- 2. Generate auth tokens ---
+DAD_TOKEN=$(head -c 32 /dev/urandom | base64 | tr -d '/+=' | head -c 32)
+DAUGHTER_TOKEN=$(head -c 32 /dev/urandom | base64 | tr -d '/+=' | head -c 32)
+BABYSITTER_TOKEN=$(head -c 32 /dev/urandom | base64 | tr -d '/+=' | head -c 32)
 
-# Generate a gateway token for auth
-GATEWAY_TOKEN=$(head -c 32 /dev/urandom | base64 | tr -d '/+=' | head -c 32)
-export OPENCLAW_GATEWAY_TOKEN="$GATEWAY_TOKEN"
+export DAD_TOKEN DAUGHTER_TOKEN BABYSITTER_TOKEN
 
-# Install qdrant-memory plugin at runtime (in case Dockerfile install didn't persist)
-su -c "HOME=/sandbox openclaw plugins install /opt/qdrant-memory" sandbox 2>&1 || echo "plugin install skipped"
+DAD_PORT=18801
+DAUGHTER_PORT=18802
+BABYSITTER_PORT=18803
 
-# Write openclaw config using the correct schema
-cat > /tmp/openclaw-config.json <<CONF
+# --- 3. Write config for each agent ---
+write_agent_config() {
+    local user=$1
+    local port=$2
+    local token=$3
+    local config_dir="/sandbox/.openclaw-${user}"
+
+    mkdir -p "${config_dir}"
+
+    cat > "${config_dir}/openclaw.json" <<AGENTCONF
 {
   "agents": {
     "defaults": {
       "model": {
         "primary": "${NEMOCLAW_MODEL:-nvidia/nemotron-3-super-120b-a12b}"
-      }
+      },
+      "systemPrompt": "You are a helpful family AI assistant. Your identity is '${user}'. You have access to shared family memory tools. When storing memories, consider who should have access. When searching, you can only see what you're allowed to. Always check your alerts for access requests or grants."
     }
   },
   "models": {
@@ -54,38 +64,55 @@ cat > /tmp/openclaw-config.json <<CONF
     }
   },
   "gateway": {
-    "port": ${PORT:-18789},
+    "port": ${port},
     "mode": "local",
     "bind": "lan",
     "auth": {
       "mode": "token",
-      "token": "$GATEWAY_TOKEN"
-    }
-  },
-  "plugins": {
-    "entries": {
-      "qdrant-memory": {
-        "enabled": true,
-        "config": {
-          "qdrantUrl": "http://127.0.0.1:${QDRANT_BRIDGE_PORT:-6333}",
-          "collectionName": "${QDRANT_COLLECTION:-agent_memory}",
-          "embeddingModel": "nvidia/nv-embedqa-e5-v5",
-          "embeddingDimensions": 1024
-        }
-      }
+      "token": "${token}"
     }
   }
 }
-CONF
+AGENTCONF
 
-# Write to all config locations OpenClaw checks
-mkdir -p /sandbox/.openclaw /sandbox/.config/openclaw
-cp /tmp/openclaw-config.json /sandbox/.openclaw/openclaw.json
-cp /tmp/openclaw-config.json /sandbox/.config/openclaw/config.json
-chown -R sandbox:sandbox /sandbox
-rm /tmp/openclaw-config.json
+    chown -R sandbox:sandbox "${config_dir}"
+    echo "wrote config for ${user} on port ${port}"
+}
 
-echo "openclaw config written (token: $GATEWAY_TOKEN)"
+write_agent_config "dad" $DAD_PORT "$DAD_TOKEN"
+write_agent_config "daughter" $DAUGHTER_PORT "$DAUGHTER_TOKEN"
+write_agent_config "babysitter" $BABYSITTER_PORT "$BABYSITTER_TOKEN"
 
-# Start OpenClaw gateway
-exec su -c "HOME=/sandbox OPENCLAW_GATEWAY_TOKEN=$GATEWAY_TOKEN openclaw gateway --port ${PORT:-18789}" sandbox
+# --- 4. Install qdrant-memory plugin for sandbox user ---
+su -c "HOME=/sandbox openclaw plugins install /opt/qdrant-memory" sandbox 2>&1 || echo "plugin install note: may already exist"
+
+# --- 5. Start each agent ---
+start_agent() {
+    local user=$1
+    local port=$2
+    local token=$3
+    local config_dir="/sandbox/.openclaw-${user}"
+
+    echo "starting agent: ${user} on port ${port}..."
+    HOME=/sandbox \
+    OPENCLAW_CONFIG_DIR="${config_dir}" \
+    OPENCLAW_GATEWAY_TOKEN="${token}" \
+    AGENT_USER="${user}" \
+    QDRANT_URL="http://127.0.0.1:${QDRANT_BRIDGE_PORT:-6333}" \
+    QDRANT_COLLECTION="${QDRANT_COLLECTION:-family_memory}" \
+    NVIDIA_API_KEY="${NVIDIA_API_KEY}" \
+    su -c "HOME=/sandbox OPENCLAW_CONFIG_DIR=${config_dir} OPENCLAW_GATEWAY_TOKEN=${token} AGENT_USER=${user} QDRANT_URL=http://127.0.0.1:${QDRANT_BRIDGE_PORT:-6333} QDRANT_COLLECTION=${QDRANT_COLLECTION:-family_memory} NVIDIA_API_KEY=${NVIDIA_API_KEY} openclaw gateway --port ${port}" sandbox &
+    echo "agent ${user} started (pid $!)"
+}
+
+start_agent "dad" $DAD_PORT "$DAD_TOKEN"
+start_agent "daughter" $DAUGHTER_PORT "$DAUGHTER_TOKEN"
+start_agent "babysitter" $BABYSITTER_PORT "$BABYSITTER_TOKEN"
+
+# Wait for agents to come up
+sleep 5
+
+# --- 6. Start the family hub (reverse proxy + landing page) ---
+echo "starting family hub on port ${PORT:-18789}..."
+export DAD_PORT DAUGHTER_PORT BABYSITTER_PORT
+exec node /opt/family-hub/server.js

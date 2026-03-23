@@ -55,6 +55,9 @@ RUN useradd -m -d /sandbox -s /bin/bash sandbox \
 RUN openclaw plugins install /opt/nemoclaw || true
 RUN openclaw plugins install /opt/qdrant-memory || true
 
+# Copy family hub
+COPY family-hub/ /opt/family-hub/
+
 # Copy entrypoint
 COPY render-entrypoint.sh /usr/local/bin/render-entrypoint.sh
 RUN chmod +x /usr/local/bin/render-entrypoint.sh

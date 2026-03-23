@@ -4,7 +4,7 @@ services:
     runtime: docker
     dockerfilePath: ./Dockerfile
     plan: standard
-    healthCheckPath: /
+    healthCheckPath: /health
     disk:
       name: qdrant-edge-storage
       mountPath: /var/lib/qdrant-edge
@@ -27,6 +27,6 @@ services:
       - key: QDRANT_BRIDGE_PORT
         value: "6333"
       - key: QDRANT_COLLECTION
-        value: agent_memory
+        value: family_memory
       - key: QDRANT_STORAGE_DIR
         value: /var/lib/qdrant-edge

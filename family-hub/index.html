@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NemoClaw Family Hub</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: #0a0a0a;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 8px;
+      color: #76b900;
+    }
+    .subtitle {
+      color: #888;
+      margin-bottom: 40px;
+      font-size: 0.95rem;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      max-width: 960px;
+      width: 100%;
+    }
+    .card {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 28px;
+      transition: border-color 0.2s, transform 0.2s;
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+    }
+    .card:hover {
+      border-color: #76b900;
+      transform: translateY(-2px);
+    }
+    .card .emoji { font-size: 2.5rem; margin-bottom: 12px; }
+    .card h2 { font-size: 1.3rem; margin-bottom: 6px; }
+    .card .role { color: #76b900; font-size: 0.85rem; font-weight: 600; margin-bottom: 10px; }
+    .card p { color: #999; font-size: 0.9rem; line-height: 1.5; }
+    .card .port { color: #555; font-size: 0.8rem; margin-top: 12px; }
+    .demo-flow {
+      max-width: 960px;
+      width: 100%;
+      margin-top: 40px;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 28px;
+    }
+    .demo-flow h2 { color: #76b900; margin-bottom: 16px; }
+    .demo-flow ol { padding-left: 20px; }
+    .demo-flow li {
+      color: #ccc;
+      margin-bottom: 10px;
+      line-height: 1.5;
+    }
+    .demo-flow li strong { color: #fff; }
+    .demo-flow code {
+      background: #2a2a2a;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      color: #76b900;
+    }
+  </style>
+</head>
+<body>
+  <h1>NemoClaw Family Hub</h1>
+  <p class="subtitle">Shared AI memory with role-based access control, powered by Qdrant + NVIDIA</p>
+
+  <div class="cards">
+    <a class="card" href="/dad/" id="dad-card">
+      <div class="emoji">👨</div>
+      <h2>Dad</h2>
+      <div class="role">ADMIN / OWNER</div>
+      <p>Full access. Can store memories, grant/revoke access to others, and receive alerts when someone is denied.</p>
+      <div class="port">Agent: dad</div>
+    </a>
+    <a class="card" href="/daughter/" id="daughter-card">
+      <div class="emoji">👧</div>
+      <h2>Daughter</h2>
+      <div class="role">FAMILY</div>
+      <p>Can access family-shared memories. Can store her own. Cannot see dad's private memories unless granted.</p>
+      <div class="port">Agent: daughter</div>
+    </a>
+    <a class="card" href="/babysitter/" id="babysitter-card">
+      <div class="emoji">👩‍🍼</div>
+      <h2>Babysitter</h2>
+      <div class="role">GUEST</div>
+      <p>Limited access. Cannot see family memories by default. Must be explicitly granted access. Owner gets alerted on denied requests.</p>
+      <div class="port">Agent: babysitter</div>
+    </a>
+  </div>
+
+  <div class="demo-flow">
+    <h2>Demo Flow</h2>
+    <ol>
+      <li><strong>Dad</strong>: "Remember the wifi password is <code>NemoClaw2026!</code>" (stores as family-visible)</li>
+      <li><strong>Daughter</strong>: "What's the wifi password?" (gets it, she's family)</li>
+      <li><strong>Babysitter</strong>: "What's the wifi password?" (DENIED, dad gets an alert)</li>
+      <li><strong>Dad</strong>: "Check my alerts" (sees babysitter's request)</li>
+      <li><strong>Dad</strong>: "Give the babysitter access to the wifi password"</li>
+      <li><strong>Babysitter</strong>: "Check my alerts" (sees she now has access)</li>
+      <li><strong>Babysitter</strong>: "What's the wifi password?" (gets it this time)</li>
+    </ol>
+  </div>
+
+  <script>
+    // Detect ports from URL or use defaults
+    const base = window.location.origin;
+    document.getElementById('dad-card').href = base + '/dad/';
+    document.getElementById('daughter-card').href = base + '/daughter/';
+    document.getElementById('babysitter-card').href = base + '/babysitter/';
+  </script>
+</body>
+</html>
