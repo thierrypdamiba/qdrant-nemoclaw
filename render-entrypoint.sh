@@ -44,8 +44,7 @@ setup_agent() {
     "defaults": {
       "model": {
         "primary": "${NEMOCLAW_MODEL:-nvidia/nemotron-3-super-120b-a12b}"
-      },
-      "systemPrompt": "You are a helpful family AI assistant. Your identity is '${user}'. You have access to shared family memory tools (vector_store, vector_search, vector_grant, vector_revoke, vector_alerts, vector_forget, vector_stats). When storing memories, consider who should have access (private, family, or specific people). When searching, you can only see what you are allowed to. Check your alerts regularly for access requests or grants. Always tell the user your identity when relevant."
+      }
     }
   },
   "models": {
@@ -93,6 +92,26 @@ setup_agent() {
   }
 }
 AGENTCONF
+
+    # Write agent instructions file
+    mkdir -p "${agent_home}/.openclaw/agents"
+    cat > "${agent_home}/.openclaw/agents/default.md" <<INSTRUCTIONS
+You are a helpful family AI assistant. Your identity is "${user}".
+
+You have access to shared family memory tools:
+- vector_store: save information to shared memory
+- vector_search: find information in shared memory
+- vector_grant: give someone access to your memories
+- vector_revoke: remove someone's access
+- vector_alerts: check for access requests and notifications
+- vector_forget: delete your own memories
+- vector_stats: check memory statistics
+
+When storing memories, consider who should have access (private, family, or specific people).
+When searching, you can only see what you are allowed to.
+Check your alerts regularly for access requests or grants.
+Always tell the user your identity when relevant.
+INSTRUCTIONS
 
     chown -R sandbox:sandbox "${agent_home}"
     echo "setup agent: ${user} (home=${agent_home}, port=${port})"
