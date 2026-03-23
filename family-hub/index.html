@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NemoClaw Family Hub</title>
+  <title>NemoClaw Family Memory Demo</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -16,58 +16,20 @@
       align-items: center;
       padding: 40px 20px;
     }
-    h1 {
-      font-size: 2rem;
-      margin-bottom: 8px;
-      color: #76b900;
-    }
-    .subtitle {
-      color: #888;
-      margin-bottom: 40px;
-      font-size: 0.95rem;
-    }
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 20px;
-      max-width: 960px;
-      width: 100%;
-    }
-    .card {
-      background: #1a1a1a;
-      border: 1px solid #333;
-      border-radius: 12px;
-      padding: 28px;
-      transition: border-color 0.2s, transform 0.2s;
-      cursor: pointer;
-      text-decoration: none;
-      color: inherit;
-    }
-    .card:hover {
-      border-color: #76b900;
-      transform: translateY(-2px);
-    }
-    .card .emoji { font-size: 2.5rem; margin-bottom: 12px; }
-    .card h2 { font-size: 1.3rem; margin-bottom: 6px; }
-    .card .role { color: #76b900; font-size: 0.85rem; font-weight: 600; margin-bottom: 10px; }
-    .card p { color: #999; font-size: 0.9rem; line-height: 1.5; }
-    .card .port { color: #555; font-size: 0.8rem; margin-top: 12px; }
+    h1 { font-size: 2rem; margin-bottom: 8px; color: #76b900; }
+    .subtitle { color: #888; margin-bottom: 40px; font-size: 0.95rem; }
     .demo-flow {
-      max-width: 960px;
+      max-width: 720px;
       width: 100%;
-      margin-top: 40px;
       background: #1a1a1a;
       border: 1px solid #333;
       border-radius: 12px;
       padding: 28px;
+      margin-bottom: 24px;
     }
     .demo-flow h2 { color: #76b900; margin-bottom: 16px; }
     .demo-flow ol { padding-left: 20px; }
-    .demo-flow li {
-      color: #ccc;
-      margin-bottom: 10px;
-      line-height: 1.5;
-    }
+    .demo-flow li { color: #ccc; margin-bottom: 10px; line-height: 1.5; }
     .demo-flow li strong { color: #fff; }
     .demo-flow code {
       background: #2a2a2a;
@@ -76,55 +38,73 @@
       font-size: 0.85rem;
       color: #76b900;
     }
+    .info {
+      max-width: 720px;
+      width: 100%;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 28px;
+    }
+    .info h2 { color: #76b900; margin-bottom: 12px; }
+    .info p { color: #999; line-height: 1.6; margin-bottom: 12px; }
+    .info code { background: #2a2a2a; padding: 2px 6px; border-radius: 4px; color: #76b900; }
+    .arch {
+      background: #111;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 16px;
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: #76b900;
+      white-space: pre;
+      overflow-x: auto;
+      margin-top: 12px;
+    }
   </style>
 </head>
 <body>
-  <h1>NemoClaw Family Hub</h1>
-  <p class="subtitle">Shared AI memory with role-based access control, powered by Qdrant + NVIDIA</p>
-
-  <div class="cards">
-    <a class="card" href="/dad/" id="dad-card">
-      <div class="emoji">👨</div>
-      <h2>Dad</h2>
-      <div class="role">ADMIN / OWNER</div>
-      <p>Full access. Can store memories, grant/revoke access to others, and receive alerts when someone is denied.</p>
-      <div class="port">Agent: dad</div>
-    </a>
-    <a class="card" href="/daughter/" id="daughter-card">
-      <div class="emoji">👧</div>
-      <h2>Daughter</h2>
-      <div class="role">FAMILY</div>
-      <p>Can access family-shared memories. Can store her own. Cannot see dad's private memories unless granted.</p>
-      <div class="port">Agent: daughter</div>
-    </a>
-    <a class="card" href="/babysitter/" id="babysitter-card">
-      <div class="emoji">👩‍🍼</div>
-      <h2>Babysitter</h2>
-      <div class="role">GUEST</div>
-      <p>Limited access. Cannot see family memories by default. Must be explicitly granted access. Owner gets alerted on denied requests.</p>
-      <div class="port">Agent: babysitter</div>
-    </a>
-  </div>
+  <h1>NemoClaw Family Memory Demo</h1>
+  <p class="subtitle">Shared AI memory with RBAC, powered by Qdrant Edge + NVIDIA Nemotron</p>
 
   <div class="demo-flow">
-    <h2>Demo Flow</h2>
+    <h2>How to Demo</h2>
+    <p style="color:#ccc; margin-bottom:16px;">Open the <a href="/chat" style="color:#76b900">Chat UI</a> and tell the agent who you are. Try this flow:</p>
     <ol>
-      <li><strong>Dad</strong>: "Remember the wifi password is <code>NemoClaw2026!</code>" (stores as family-visible)</li>
-      <li><strong>Daughter</strong>: "What's the wifi password?" (gets it, she's family)</li>
-      <li><strong>Babysitter</strong>: "What's the wifi password?" (DENIED, dad gets an alert)</li>
-      <li><strong>Dad</strong>: "Check my alerts" (sees babysitter's request)</li>
-      <li><strong>Dad</strong>: "Give the babysitter access to the wifi password"</li>
-      <li><strong>Babysitter</strong>: "Check my alerts" (sees she now has access)</li>
-      <li><strong>Babysitter</strong>: "What's the wifi password?" (gets it this time)</li>
+      <li>Say: <code>I'm dad</code>. Then: <code>Remember the wifi password is NemoClaw2026! Make it visible to family.</code></li>
+      <li>Open a new chat. Say: <code>I'm the daughter</code>. Then: <code>What's the wifi password?</code> (she gets it)</li>
+      <li>Open a new chat. Say: <code>I'm the babysitter</code>. Then: <code>What's the wifi password?</code> (DENIED, dad gets alerted)</li>
+      <li>Open a new chat. Say: <code>I'm dad. Check my alerts.</code> (sees babysitter's request)</li>
+      <li>Tell dad: <code>Give the babysitter access to the wifi password</code></li>
+      <li>Open a new chat. Say: <code>I'm the babysitter. Check my alerts.</code> (sees access granted)</li>
+      <li>Tell babysitter: <code>What's the wifi password?</code> (gets it this time!)</li>
     </ol>
   </div>
 
-  <script>
-    // Detect ports from URL or use defaults
-    const base = window.location.origin;
-    document.getElementById('dad-card').href = base + '/dad/';
-    document.getElementById('daughter-card').href = base + '/daughter/';
-    document.getElementById('babysitter-card').href = base + '/babysitter/';
-  </script>
+  <div class="info">
+    <h2>Architecture</h2>
+    <p>Single OpenClaw gateway with the <code>qdrant-memory</code> plugin. Memories are stored as 1024-dimension vectors (NVIDIA nv-embedqa-e5-v5) in an embedded Qdrant Edge shard. Each memory has an owner, visibility level, and access control list.</p>
+    <div class="arch">User Chat UI
+    |
+    v
+OpenClaw Gateway (Nemotron 3 Super 120B)
+    |                    |
+    v                    v
+NVIDIA Inference    qdrant-memory plugin
+                         |
+                    NVIDIA Embeddings API
+                    (nv-embedqa-e5-v5)
+                         |
+                    Qdrant Edge Bridge
+                    (embedded, no server)
+                         |
+                    Persistent Disk</div>
+    <p style="margin-top:16px;">
+      <strong>Memory tools:</strong> vector_store, vector_search, vector_grant, vector_revoke, vector_alerts, vector_forget, vector_stats
+    </p>
+    <p>
+      <strong>Access levels:</strong> private (owner only), family (dad/mom/daughter/son), custom (explicit list)
+    </p>
+  </div>
 </body>
 </html>
