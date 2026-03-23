@@ -16,6 +16,13 @@ done
 
 echo "starting nemoclaw on port ${PORT:-18789}..."
 
+# Generate a gateway token for auth
+GATEWAY_TOKEN=$(head -c 32 /dev/urandom | base64 | tr -d '/+=' | head -c 32)
+export OPENCLAW_GATEWAY_TOKEN="$GATEWAY_TOKEN"
+
+# Install qdrant-memory plugin at runtime (in case Dockerfile install didn't persist)
+su -c "HOME=/sandbox openclaw plugins install /opt/qdrant-memory" sandbox 2>&1 || echo "plugin install skipped"
+
 # Write openclaw config using the correct schema
 cat > /tmp/openclaw-config.json <<CONF
 {
@@ -51,7 +58,8 @@ cat > /tmp/openclaw-config.json <<CONF
     "mode": "local",
     "bind": "lan",
     "auth": {
-      "mode": "none"
+      "mode": "token",
+      "token": "$GATEWAY_TOKEN"
     }
   },
   "plugins": {
@@ -77,7 +85,7 @@ cp /tmp/openclaw-config.json /sandbox/.config/openclaw/config.json
 chown -R sandbox:sandbox /sandbox
 rm /tmp/openclaw-config.json
 
-echo "openclaw config written"
+echo "openclaw config written (token: $GATEWAY_TOKEN)"
 
 # Start OpenClaw gateway
-exec su -c "HOME=/sandbox openclaw gateway --port ${PORT:-18789}" sandbox
+exec su -c "HOME=/sandbox OPENCLAW_GATEWAY_TOKEN=$GATEWAY_TOKEN openclaw gateway --port ${PORT:-18789}" sandbox
