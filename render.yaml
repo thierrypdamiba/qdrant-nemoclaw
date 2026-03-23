@@ -5,6 +5,10 @@ services:
     dockerfilePath: ./Dockerfile
     plan: standard
     healthCheckPath: /
+    disk:
+      name: qdrant-edge-storage
+      mountPath: /var/lib/qdrant-edge
+      sizeGB: 1
     envVars:
       - key: NVIDIA_API_KEY
         sync: false
@@ -18,9 +22,11 @@ services:
         value: https://integrate.api.nvidia.com/v1
       - key: PORT
         value: "18789"
-      - key: DISCORD_BOT_TOKEN
-        sync: false
-      - key: SLACK_BOT_TOKEN
-        sync: false
-      - key: TELEGRAM_BOT_TOKEN
-        sync: false
+      - key: QDRANT_URL
+        value: http://127.0.0.1:6333
+      - key: QDRANT_BRIDGE_PORT
+        value: "6333"
+      - key: QDRANT_COLLECTION
+        value: agent_memory
+      - key: QDRANT_STORAGE_DIR
+        value: /var/lib/qdrant-edge

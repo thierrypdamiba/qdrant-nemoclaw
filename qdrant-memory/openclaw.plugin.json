@@ -1,0 +1,32 @@
+{
+  "id": "qdrant-memory",
+  "name": "Qdrant Vector Memory",
+  "version": "0.1.0",
+  "description": "Persistent semantic memory for NemoClaw agents, powered by Qdrant vector search and NVIDIA embeddings",
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "qdrantUrl": {
+        "type": "string",
+        "description": "Qdrant server URL",
+        "default": "http://localhost:6333"
+      },
+      "collectionName": {
+        "type": "string",
+        "description": "Qdrant collection name for agent memory",
+        "default": "agent_memory"
+      },
+      "embeddingModel": {
+        "type": "string",
+        "description": "NVIDIA embedding model to use",
+        "default": "nvidia/nv-embedqa-e5-v5"
+      },
+      "embeddingDimensions": {
+        "type": "number",
+        "description": "Vector dimensions for the embedding model",
+        "default": 1024
+      }
+    },
+    "additionalProperties": false
+  }
+}

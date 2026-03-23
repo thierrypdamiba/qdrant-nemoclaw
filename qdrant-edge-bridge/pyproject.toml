@@ -1,0 +1,15 @@
+[project]
+name = "qdrant-edge-bridge"
+version = "0.1.0"
+description = "Thin HTTP bridge exposing Qdrant Edge to the NemoClaw TypeScript plugin"
+requires-python = ">=3.12"
+dependencies = [
+    "qdrant-edge-py>=0.1.0",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.34.0",
+    "httpx>=0.28.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
