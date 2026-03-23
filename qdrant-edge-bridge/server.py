@@ -78,8 +78,15 @@ class VectorConfig(BaseModel):
     distance: str = "Cosine"
 
 
+class HnswConfig(BaseModel):
+    m: int = 16
+    payload_m: int = 16
+    ef_construct: int = 100
+
+
 class CreateCollectionRequest(BaseModel):
     vectors: VectorConfig
+    hnsw_config: HnswConfig | None = None
 
 
 class PointStruct(BaseModel):
@@ -108,7 +115,7 @@ class DeleteRequest(BaseModel):
 
 class PayloadIndexRequest(BaseModel):
     field_name: str
-    field_schema: str = "keyword"
+    field_schema: str | dict[str, Any] = "keyword"
     wait: bool = True
 
 
@@ -255,12 +262,81 @@ async def delete_points(name: str, req: DeleteRequest):
     return {"result": {"operation_id": 0, "status": "completed"}, "status": "ok"}
 
 
+class SetPayloadRequest(BaseModel):
+    payload: dict[str, Any]
+    points: list[str | int] | None = None
+    filter: dict[str, Any] | None = None
+    wait: bool = True
+
+
+class ScrollRequest(BaseModel):
+    filter: dict[str, Any] | None = None
+    with_payload: bool = True
+    limit: int = 20
+    offset: str | int | None = None
+
+
+@app.post("/collections/{name}/points/payload")
+@app.put("/collections/{name}/points/payload")
+async def set_payload(name: str, req: SetPayloadRequest):
+    entry = get_shard(name)
+    points_store = entry.get("points", {})
+
+    target_ids = []
+    if req.points:
+        target_ids = [str(p) for p in req.points]
+    elif req.filter and "must" in req.filter:
+        # Find matching points by filter
+        for pid, p in points_store.items():
+            if _matches_filter(p.get("payload", {}), req.filter):
+                target_ids.append(pid)
+
+    for pid in target_ids:
+        if pid in points_store:
+            points_store[pid]["payload"].update(req.payload)
+
+    return {"result": {"operation_id": 0, "status": "completed"}, "status": "ok"}
+
+
+@app.post("/collections/{name}/points/scroll")
+async def scroll_points(name: str, req: ScrollRequest):
+    entry = get_shard(name)
+    points_store = entry.get("points", {})
+
+    results = []
+    for pid, p in points_store.items():
+        payload = p.get("payload", {})
+        if req.filter and not _matches_filter(payload, req.filter):
+            continue
+        point: dict[str, Any] = {"id": pid, "version": 0}
+        if req.with_payload:
+            point["payload"] = payload
+        results.append(point)
+        if len(results) >= req.limit:
+            break
+
+    return {"result": {"points": results, "next_page_offset": None}, "status": "ok"}
+
+
 @app.put("/collections/{name}/index")
 async def create_index(name: str, req: PayloadIndexRequest):
-    # Qdrant Edge handles indexing internally; this is a no-op for compatibility
     get_shard(name)
-    log.info(f"payload index requested: {name}/{req.field_name} (no-op for edge mode)")
+    schema_info = req.field_schema if isinstance(req.field_schema, str) else json.dumps(req.field_schema)
+    log.info(f"payload index: {name}/{req.field_name} schema={schema_info}")
     return {"result": {"operation_id": 0, "status": "completed"}, "status": "ok"}
+
+
+def _matches_filter(payload: dict[str, Any], filt: dict[str, Any]) -> bool:
+    """Check if a payload matches a Qdrant filter."""
+    if "must" in filt:
+        for cond in filt["must"]:
+            key = cond.get("key", "")
+            match_val = cond.get("match", {}).get("value")
+            if match_val is not None:
+                actual = payload.get(key)
+                if actual != match_val:
+                    return False
+    return True
 
 
 def _cosine_sim(a: list[float], b: list[float]) -> float:

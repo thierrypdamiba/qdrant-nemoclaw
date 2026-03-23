@@ -20,22 +20,43 @@ export class QdrantMemory {
     async ensureCollections() {
         if (this.initialized)
             return;
-        // Main memory collection
+        // Main memory collection with tenant-optimized HNSW
         try {
             await this.client.getCollection(this.collection);
         }
         catch {
             await this.client.createCollection(this.collection, {
                 vectors: { size: this.dimensions, distance: "Cosine" },
+                // Tenant-optimized: per-tenant HNSW sub-graphs
+                // m=0 disables global graph (all queries MUST include tenant filter)
+                // payload_m=16 builds efficient per-tenant indexes
+                hnsw_config: {
+                    payload_m: 16,
+                    m: 0,
+                },
             });
-            for (const field of ["owner", "visibility", "category", "created_at"]) {
-                const schema = field === "created_at" ? "integer" : "keyword";
+            // tenant_id is the primary partition key with is_tenant flag
+            // This co-locates vectors from the same tenant on disk
+            await this.client.createPayloadIndex(this.collection, {
+                field_name: "tenant_id",
+                field_schema: { type: "keyword", is_tenant: true },
+                wait: true,
+            });
+            // Secondary indexes for filtering within a tenant
+            for (const field of ["owner", "visibility", "category"]) {
                 await this.client.createPayloadIndex(this.collection, {
-                    field_name: field, field_schema: schema, wait: true,
+                    field_name: field,
+                    field_schema: "keyword",
+                    wait: true,
                 });
             }
+            await this.client.createPayloadIndex(this.collection, {
+                field_name: "created_at",
+                field_schema: "integer",
+                wait: true,
+            });
         }
-        // Alerts collection (uses same vector dims, but search is by filter not vector)
+        // Alerts collection
         try {
             await this.client.getCollection(this.alertCollection);
         }
@@ -44,14 +65,22 @@ export class QdrantMemory {
                 vectors: { size: this.dimensions, distance: "Cosine" },
             });
             for (const field of ["to", "from", "type", "read", "timestamp"]) {
-                const schema = (field === "timestamp") ? "integer" : "keyword";
+                const schema = field === "timestamp" ? "integer" : "keyword";
                 await this.client.createPayloadIndex(this.alertCollection, {
-                    field_name: field, field_schema: schema, wait: true,
+                    field_name: field,
+                    field_schema: schema,
+                    wait: true,
                 });
             }
         }
         this.initialized = true;
     }
+    /**
+     * Store a memory with tenant isolation.
+     * tenant_id is the primary partition key for Qdrant multitenancy.
+     * owner is the user who created the memory.
+     * access_list controls who can read it (within or across tenants).
+     */
     async store(text, opts) {
         await this.ensureCollections();
         const vector = await embedSingle(text, {
@@ -60,26 +89,38 @@ export class QdrantMemory {
             inputType: "passage",
         });
         const id = randomUUID();
+        const accessList = opts.accessList || [opts.owner];
+        // Family visibility grants access to all family roles
+        if (opts.visibility === "family") {
+            const familyRoles = ["dad", "mom", "daughter", "son"];
+            for (const role of familyRoles) {
+                if (!accessList.includes(role))
+                    accessList.push(role);
+            }
+        }
         const payload = {
             text,
+            tenant_id: opts.tenantId,
             owner: opts.owner,
             visibility: opts.visibility || "private",
-            access_list: opts.accessList || [opts.owner],
+            access_list: accessList,
             category: opts.category || "general",
             created_at: Date.now(),
             ...(opts.metadata || {}),
         };
-        // Family visibility means all family roles get access
-        if (payload.visibility === "family") {
-            const familyRoles = ["dad", "mom", "daughter", "son"];
-            payload.access_list = [...new Set([...payload.access_list, ...familyRoles])];
-        }
         await this.client.upsert(this.collection, {
             wait: true,
             points: [{ id, vector, payload }],
         });
         return id;
     }
+    /**
+     * Search memories with tenant-aware filtering.
+     * Uses Qdrant's tenant_id filter pushed into the query for efficient
+     * per-tenant HNSW traversal (no post-hoc filtering needed).
+     *
+     * Returns both accessible results and denied results (for alerting).
+     */
     async search(query, opts) {
         await this.ensureCollections();
         const vector = await embedSingle(query, {
@@ -87,12 +128,19 @@ export class QdrantMemory {
             model: this.embeddingModel,
             inputType: "query",
         });
-        // Search all memories (no access filter yet, we filter after)
+        // Search within tenant partition (uses per-tenant HNSW sub-graph)
+        const must = [
+            { key: "tenant_id", match: { value: opts.tenantId } },
+        ];
+        if (opts.category) {
+            must.push({ key: "category", match: { value: opts.category } });
+        }
         const allResults = await this.client.search(this.collection, {
             vector,
-            limit: (opts.limit || 5) * 3, // fetch more to account for filtered out
+            limit: (opts.limit || 5) * 3,
             with_payload: true,
             score_threshold: opts.scoreThreshold || 0.5,
+            filter: { must },
         });
         const results = [];
         const denied = [];
@@ -133,12 +181,15 @@ export class QdrantMemory {
             limit: 3,
             with_payload: true,
             score_threshold: 0.6,
+            filter: {
+                must: [
+                    { key: "tenant_id", match: { value: opts.tenantId } },
+                    { key: "owner", match: { value: opts.granter } },
+                ],
+            },
         });
         const granted = [];
         for (const r of results) {
-            const owner = r.payload?.owner || "";
-            if (owner !== opts.granter)
-                continue;
             const accessList = r.payload?.access_list || [];
             if (accessList.includes(opts.grantee))
                 continue;
@@ -149,7 +200,6 @@ export class QdrantMemory {
                 wait: true,
             });
             granted.push(String(r.id));
-            // Create "access_granted" alert for the grantee
             await this.createAlert({
                 type: "access_granted",
                 from: opts.granter,
@@ -168,12 +218,19 @@ export class QdrantMemory {
             inputType: "query",
         });
         const results = await this.client.search(this.collection, {
-            vector, limit: 3, with_payload: true, score_threshold: 0.6,
+            vector,
+            limit: 3,
+            with_payload: true,
+            score_threshold: 0.6,
+            filter: {
+                must: [
+                    { key: "tenant_id", match: { value: opts.tenantId } },
+                    { key: "owner", match: { value: opts.revoker } },
+                ],
+            },
         });
         let revoked = 0;
         for (const r of results) {
-            if (r.payload?.owner !== opts.revoker)
-                continue;
             const accessList = (r.payload?.access_list || []).filter((u) => u !== opts.revokee);
             await this.client.setPayload(this.collection, {
                 payload: { access_list: accessList },
@@ -186,9 +243,8 @@ export class QdrantMemory {
     }
     async createAlert(opts) {
         await this.ensureCollections();
-        // Use a dummy vector for alerts (we search by filter, not similarity)
         const vector = new Array(this.dimensions).fill(0);
-        vector[0] = 1; // non-zero so it's valid
+        vector[0] = 1;
         const id = randomUUID();
         await this.client.upsert(this.alertCollection, {
             wait: true,
@@ -246,22 +302,31 @@ export class QdrantMemory {
     async forget(query, opts) {
         await this.ensureCollections();
         const vector = await embedSingle(query, {
-            apiKey: this.apiKey, model: this.embeddingModel, inputType: "query",
+            apiKey: this.apiKey,
+            model: this.embeddingModel,
+            inputType: "query",
         });
         const results = await this.client.search(this.collection, {
-            vector, limit: opts.limit || 3, with_payload: true,
+            vector,
+            limit: opts.limit || 3,
+            with_payload: true,
             score_threshold: opts.scoreThreshold || 0.8,
+            filter: {
+                must: [
+                    { key: "tenant_id", match: { value: opts.tenantId } },
+                    { key: "owner", match: { value: opts.caller } },
+                ],
+            },
         });
-        const toDelete = results.filter((r) => r.payload?.owner === opts.caller);
-        if (toDelete.length === 0)
+        if (results.length === 0)
             return 0;
         await this.client.delete(this.collection, {
             wait: true,
-            points: toDelete.map((r) => String(r.id)),
+            points: results.map((r) => String(r.id)),
         });
-        return toDelete.length;
+        return results.length;
     }
-    async getStats() {
+    async getStats(tenantId) {
         await this.ensureCollections();
         const info = await this.client.getCollection(this.collection);
         const alertInfo = await this.client.getCollection(this.alertCollection);

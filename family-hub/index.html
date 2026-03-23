@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NemoClaw Family Memory Demo</title>
+  <title>NemoClaw Family Memory</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -16,95 +16,323 @@
       align-items: center;
       padding: 40px 20px;
     }
-    h1 { font-size: 2rem; margin-bottom: 8px; color: #76b900; }
-    .subtitle { color: #888; margin-bottom: 40px; font-size: 0.95rem; }
-    .demo-flow {
-      max-width: 720px;
+    h1 { font-size: 2rem; margin-bottom: 4px; color: #76b900; }
+    .subtitle { color: #888; margin-bottom: 32px; font-size: 0.9rem; }
+    .badge {
+      display: inline-block;
+      background: #76b900;
+      color: #000;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    .profiles {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      max-width: 760px;
+      width: 100%;
+      margin-bottom: 32px;
+    }
+    .profile {
+      background: #1a1a1a;
+      border: 2px solid #333;
+      border-radius: 12px;
+      padding: 24px;
+      cursor: pointer;
+      transition: border-color 0.2s, transform 0.15s;
+      text-align: center;
+    }
+    .profile:hover { border-color: #76b900; transform: translateY(-2px); }
+    .profile.active { border-color: #76b900; background: #1a2a0a; }
+    .profile .avatar { font-size: 3rem; margin-bottom: 8px; }
+    .profile h3 { font-size: 1.1rem; margin-bottom: 4px; }
+    .profile .role {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+    .profile .role.admin { color: #76b900; }
+    .profile .role.family { color: #4da6ff; }
+    .profile .role.guest { color: #ff9f43; }
+    .profile p { color: #888; font-size: 0.8rem; line-height: 1.4; }
+
+    .chat-section {
+      max-width: 760px;
       width: 100%;
       background: #1a1a1a;
       border: 1px solid #333;
       border-radius: 12px;
-      padding: 28px;
+      overflow: hidden;
+      margin-bottom: 24px;
+      display: none;
+    }
+    .chat-section.visible { display: block; }
+    .chat-header {
+      background: #111;
+      padding: 12px 20px;
+      border-bottom: 1px solid #333;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .chat-header .identity { color: #76b900; font-weight: 600; }
+    .chat-header .tenant { color: #555; font-size: 0.8rem; }
+    .chat-messages {
+      height: 400px;
+      overflow-y: auto;
+      padding: 16px 20px;
+    }
+    .msg {
+      margin-bottom: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      max-width: 85%;
+      line-height: 1.5;
+      font-size: 0.9rem;
+    }
+    .msg.user {
+      background: #76b900;
+      color: #000;
+      margin-left: auto;
+      text-align: right;
+    }
+    .msg.agent {
+      background: #222;
+      color: #ddd;
+    }
+    .msg.system {
+      background: transparent;
+      color: #555;
+      text-align: center;
+      font-size: 0.8rem;
+      max-width: 100%;
+    }
+    .msg .denied { color: #ff4444; font-weight: 600; }
+    .msg .granted { color: #76b900; font-weight: 600; }
+    .chat-input {
+      display: flex;
+      border-top: 1px solid #333;
+    }
+    .chat-input input {
+      flex: 1;
+      background: #111;
+      border: none;
+      color: #eee;
+      padding: 14px 20px;
+      font-size: 0.9rem;
+      outline: none;
+    }
+    .chat-input input::placeholder { color: #555; }
+    .chat-input button {
+      background: #76b900;
+      color: #000;
+      border: none;
+      padding: 14px 24px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .chat-input button:hover { background: #8ed100; }
+    .chat-input button:disabled { background: #333; color: #666; cursor: not-allowed; }
+
+    .demo-flow {
+      max-width: 760px;
+      width: 100%;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 24px;
       margin-bottom: 24px;
     }
-    .demo-flow h2 { color: #76b900; margin-bottom: 16px; }
+    .demo-flow h2 { color: #76b900; margin-bottom: 12px; font-size: 1.1rem; }
     .demo-flow ol { padding-left: 20px; }
-    .demo-flow li { color: #ccc; margin-bottom: 10px; line-height: 1.5; }
+    .demo-flow li { color: #bbb; margin-bottom: 8px; line-height: 1.5; font-size: 0.85rem; }
     .demo-flow li strong { color: #fff; }
     .demo-flow code {
       background: #2a2a2a;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 0.85rem;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 0.8rem;
       color: #76b900;
     }
-    .info {
-      max-width: 720px;
+    .tech {
+      max-width: 760px;
       width: 100%;
-      background: #1a1a1a;
-      border: 1px solid #333;
-      border-radius: 12px;
-      padding: 28px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 24px;
     }
-    .info h2 { color: #76b900; margin-bottom: 12px; }
-    .info p { color: #999; line-height: 1.6; margin-bottom: 12px; }
-    .info code { background: #2a2a2a; padding: 2px 6px; border-radius: 4px; color: #76b900; }
-    .arch {
-      background: #111;
+    .tech-card {
+      background: #1a1a1a;
       border: 1px solid #333;
       border-radius: 8px;
       padding: 16px;
-      font-family: monospace;
-      font-size: 0.85rem;
-      color: #76b900;
-      white-space: pre;
-      overflow-x: auto;
-      margin-top: 12px;
+    }
+    .tech-card h4 { color: #76b900; font-size: 0.85rem; margin-bottom: 6px; }
+    .tech-card p { color: #888; font-size: 0.8rem; line-height: 1.4; }
+    .tech-card code { color: #76b900; font-size: 0.75rem; }
+    @media (max-width: 600px) {
+      .tech { grid-template-columns: 1fr; }
+      .profiles { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
-  <h1>NemoClaw Family Memory Demo</h1>
-  <p class="subtitle">Shared AI memory with RBAC, powered by Qdrant Edge + NVIDIA Nemotron</p>
+  <h1>NemoClaw Family Memory <span class="badge">QDRANT MULTITENANCY</span></h1>
+  <p class="subtitle">Shared AI memory with role-based access, powered by Qdrant Edge + NVIDIA Nemotron</p>
+
+  <div class="profiles">
+    <div class="profile" onclick="selectProfile('dad')">
+      <div class="avatar">👨</div>
+      <h3>Dad</h3>
+      <div class="role admin">Admin / Owner</div>
+      <p>Full access. Stores memories, receives alerts, grants/revokes access.</p>
+    </div>
+    <div class="profile" onclick="selectProfile('daughter')">
+      <div class="avatar">👧</div>
+      <h3>Daughter</h3>
+      <div class="role family">Family</div>
+      <p>Sees family-shared memories. Can store her own.</p>
+    </div>
+    <div class="profile" onclick="selectProfile('babysitter')">
+      <div class="avatar">👩‍🍼</div>
+      <h3>Babysitter</h3>
+      <div class="role guest">Guest</div>
+      <p>No access by default. Must be explicitly granted. Owner gets alerted.</p>
+    </div>
+  </div>
+
+  <div class="chat-section" id="chatSection">
+    <div class="chat-header">
+      <span class="identity" id="chatIdentity">Dad</span>
+      <span class="tenant">tenant: household_1</span>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="msg system">Select a profile above to start chatting</div>
+    </div>
+    <div class="chat-input">
+      <input type="text" id="chatInput" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendMessage()" disabled>
+      <button onclick="sendMessage()" id="sendBtn" disabled>Send</button>
+    </div>
+  </div>
 
   <div class="demo-flow">
-    <h2>How to Demo</h2>
-    <p style="color:#ccc; margin-bottom:16px;">Open the <a href="/chat" style="color:#76b900">Chat UI</a> and tell the agent who you are. Try this flow:</p>
+    <h2>Demo Flow</h2>
     <ol>
-      <li>Say: <code>I'm dad</code>. Then: <code>Remember the wifi password is NemoClaw2026! Make it visible to family.</code></li>
-      <li>Open a new chat. Say: <code>I'm the daughter</code>. Then: <code>What's the wifi password?</code> (she gets it)</li>
-      <li>Open a new chat. Say: <code>I'm the babysitter</code>. Then: <code>What's the wifi password?</code> (DENIED, dad gets alerted)</li>
-      <li>Open a new chat. Say: <code>I'm dad. Check my alerts.</code> (sees babysitter's request)</li>
-      <li>Tell dad: <code>Give the babysitter access to the wifi password</code></li>
-      <li>Open a new chat. Say: <code>I'm the babysitter. Check my alerts.</code> (sees access granted)</li>
-      <li>Tell babysitter: <code>What's the wifi password?</code> (gets it this time!)</li>
+      <li>Select <strong>Dad</strong>. Type: <code>Remember the wifi password is NemoClaw2026! Make it visible to family.</code></li>
+      <li>Select <strong>Daughter</strong>. Type: <code>What's the wifi password?</code> (gets it, she's family)</li>
+      <li>Select <strong>Babysitter</strong>. Type: <code>What's the wifi password?</code> (DENIED, dad alerted)</li>
+      <li>Select <strong>Dad</strong>. Type: <code>Check my alerts</code> (sees babysitter's request)</li>
+      <li>Tell Dad: <code>Give the babysitter access to the wifi password</code></li>
+      <li>Select <strong>Babysitter</strong>. Type: <code>Check my alerts</code> (sees access granted)</li>
+      <li>Tell Babysitter: <code>What's the wifi password?</code> (gets it now)</li>
     </ol>
   </div>
 
-  <div class="info">
-    <h2>Architecture</h2>
-    <p>Single OpenClaw gateway with the <code>qdrant-memory</code> plugin. Memories are stored as 1024-dimension vectors (NVIDIA nv-embedqa-e5-v5) in an embedded Qdrant Edge shard. Each memory has an owner, visibility level, and access control list.</p>
-    <div class="arch">User Chat UI
-    |
-    v
-OpenClaw Gateway (Nemotron 3 Super 120B)
-    |                    |
-    v                    v
-NVIDIA Inference    qdrant-memory plugin
-                         |
-                    NVIDIA Embeddings API
-                    (nv-embedqa-e5-v5)
-                         |
-                    Qdrant Edge Bridge
-                    (embedded, no server)
-                         |
-                    Persistent Disk</div>
-    <p style="margin-top:16px;">
-      <strong>Memory tools:</strong> vector_store, vector_search, vector_grant, vector_revoke, vector_alerts, vector_forget, vector_stats
-    </p>
-    <p>
-      <strong>Access levels:</strong> private (owner only), family (dad/mom/daughter/son), custom (explicit list)
-    </p>
+  <div class="tech">
+    <div class="tech-card">
+      <h4>Qdrant Multitenancy</h4>
+      <p>Single collection, <code>is_tenant: true</code> on <code>tenant_id</code>. Per-tenant HNSW sub-graphs (<code>m=0, payload_m=16</code>). All queries scoped to tenant.</p>
+    </div>
+    <div class="tech-card">
+      <h4>Qdrant Edge</h4>
+      <p>Embedded vector search via Python bridge. No external Qdrant server. Runs in-process alongside the AI agent.</p>
+    </div>
+    <div class="tech-card">
+      <h4>NVIDIA Embeddings</h4>
+      <p><code>nv-embedqa-e5-v5</code> (1024 dims). Separate <code>input_type</code> for queries vs passages.</p>
+    </div>
+    <div class="tech-card">
+      <h4>Access Control</h4>
+      <p>Payload-based ACL: <code>access_list</code> field per point. Denied access triggers alerts stored in a separate collection.</p>
+    </div>
   </div>
+
+  <script>
+    let currentProfile = null;
+    const GATEWAY_URL = window.location.origin;
+
+    function selectProfile(name) {
+      currentProfile = name;
+      document.querySelectorAll('.profile').forEach(p => p.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+
+      const display = {dad: 'Dad', daughter: 'Daughter', babysitter: 'Babysitter'}[name];
+      document.getElementById('chatIdentity').textContent = display;
+      document.getElementById('chatSection').classList.add('visible');
+      document.getElementById('chatInput').disabled = false;
+      document.getElementById('sendBtn').disabled = false;
+      document.getElementById('chatInput').focus();
+
+      const msgs = document.getElementById('chatMessages');
+      msgs.innerHTML = `<div class="msg system">Now chatting as <strong>${display}</strong>. The agent knows your identity.</div>`;
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text || !currentProfile) return;
+
+      input.value = '';
+      addMessage(text, 'user');
+
+      const sendBtn = document.getElementById('sendBtn');
+      sendBtn.disabled = true;
+      input.disabled = true;
+
+      try {
+        // Prepend identity context to the message
+        const contextMsg = `[I am ${currentProfile}. My identity for all memory operations is "${currentProfile}". Use this as the caller/owner for all vector_store, vector_search, vector_grant, vector_revoke, vector_alerts, and vector_forget operations.]\n\n${text}`;
+
+        // Use the OpenClaw HTTP API to send a message
+        const res = await fetch(`${GATEWAY_URL}/api/v1/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: contextMsg,
+            stream: false,
+          }),
+        });
+
+        if (!res.ok) {
+          const err = await res.text();
+          addMessage(`Error: ${res.status} ${err.slice(0, 200)}`, 'agent');
+        } else {
+          const data = await res.json();
+          const reply = data.response || data.message || data.content || JSON.stringify(data);
+          addMessage(reply, 'agent');
+        }
+      } catch (err) {
+        addMessage(`Connection error: ${err.message}. The OpenClaw gateway may need the chat UI instead. Open ${GATEWAY_URL} directly and tell the agent "I am ${currentProfile}".`, 'agent');
+      }
+
+      sendBtn.disabled = false;
+      input.disabled = false;
+      input.focus();
+    }
+
+    function addMessage(text, type) {
+      const msgs = document.getElementById('chatMessages');
+      const div = document.createElement('div');
+      div.className = `msg ${type}`;
+
+      // Highlight access denied/granted
+      let html = text
+        .replace(/ACCESS DENIED/g, '<span class="denied">ACCESS DENIED</span>')
+        .replace(/ACCESS GRANTED/g, '<span class="granted">ACCESS GRANTED</span>')
+        .replace(/ACCESS REQUEST/g, '<span class="denied">ACCESS REQUEST</span>');
+
+      div.innerHTML = html;
+      msgs.appendChild(div);
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+  </script>
 </body>
 </html>

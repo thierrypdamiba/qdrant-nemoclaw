@@ -30,14 +30,29 @@ export declare class QdrantMemory {
         apiKey: string;
     });
     ensureCollections(): Promise<void>;
+    /**
+     * Store a memory with tenant isolation.
+     * tenant_id is the primary partition key for Qdrant multitenancy.
+     * owner is the user who created the memory.
+     * access_list controls who can read it (within or across tenants).
+     */
     store(text: string, opts: {
+        tenantId: string;
         owner: string;
         visibility?: "private" | "family" | "custom";
         accessList?: string[];
         category?: string;
         metadata?: Record<string, unknown>;
     }): Promise<string>;
+    /**
+     * Search memories with tenant-aware filtering.
+     * Uses Qdrant's tenant_id filter pushed into the query for efficient
+     * per-tenant HNSW traversal (no post-hoc filtering needed).
+     *
+     * Returns both accessible results and denied results (for alerting).
+     */
     search(query: string, opts: {
+        tenantId: string;
         caller: string;
         limit?: number;
         category?: string;
@@ -47,6 +62,7 @@ export declare class QdrantMemory {
         denied: MemoryPoint[];
     }>;
     grantAccess(memoryQuery: string, opts: {
+        tenantId: string;
         granter: string;
         grantee: string;
     }): Promise<{
@@ -54,6 +70,7 @@ export declare class QdrantMemory {
         memoryIds: string[];
     }>;
     revokeAccess(memoryQuery: string, opts: {
+        tenantId: string;
         revoker: string;
         revokee: string;
     }): Promise<number>;
@@ -67,11 +84,12 @@ export declare class QdrantMemory {
     getAlerts(userId: string): Promise<Alert[]>;
     markAlertsRead(userId: string): Promise<number>;
     forget(query: string, opts: {
+        tenantId: string;
         caller: string;
         limit?: number;
         scoreThreshold?: number;
     }): Promise<number>;
-    getStats(): Promise<{
+    getStats(tenantId?: string): Promise<{
         totalPoints: number;
         totalAlerts: number;
         status: string;
