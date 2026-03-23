@@ -55,8 +55,8 @@ cat > /sandbox/.openclaw/openclaw.json <<CONF
     "mode": "local",
     "bind": "lan",
     "auth": {
-      "mode": "password",
-      "password": "${GATEWAY_PASSWORD:-demo}"
+      "mode": "token",
+      "token": "${GATEWAY_TOKEN:-nemoclaw-demo-2026}"
     },
     "controlUi": {
       "allowedOrigins": ["https://nemoclaw-4xdu.onrender.com", "http://localhost:18789", "http://127.0.0.1:18789"]
@@ -105,4 +105,4 @@ chown -R sandbox:sandbox /sandbox
 echo "config written, starting gateway on port ${PORT:-18789}..."
 
 # --- 5. Start OpenClaw gateway ---
-exec su -c "HOME=/sandbox OPENCLAW_GATEWAY_PASSWORD=${GATEWAY_PASSWORD:-demo} AGENT_USER=family QDRANT_URL=http://127.0.0.1:${QDRANT_BRIDGE_PORT:-6333} QDRANT_COLLECTION=${QDRANT_COLLECTION:-family_memory} NVIDIA_API_KEY=${NVIDIA_API_KEY} openclaw gateway --port ${PORT:-18789} --password ${GATEWAY_PASSWORD:-demo}" sandbox
+exec su -c "HOME=/sandbox OPENCLAW_GATEWAY_TOKEN=${GATEWAY_TOKEN:-nemoclaw-demo-2026} AGENT_USER=family QDRANT_URL=http://127.0.0.1:${QDRANT_BRIDGE_PORT:-6333} QDRANT_COLLECTION=${QDRANT_COLLECTION:-family_memory} NVIDIA_API_KEY=${NVIDIA_API_KEY} openclaw gateway --port ${PORT:-18789}" sandbox
