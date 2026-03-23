@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: nemoclaw
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: standard
+    healthCheckPath: /
+    envVars:
+      - key: NVIDIA_API_KEY
+        sync: false
+      - key: NEMOCLAW_MODEL
+        value: nvidia/nemotron-3-super-120b-a12b
+      - key: NEMOCLAW_PROVIDER
+        value: default
+      - key: NEMOCLAW_PROVIDER_TYPE
+        value: nvidia
+      - key: NEMOCLAW_INFERENCE_ENDPOINT
+        value: https://integrate.api.nvidia.com/v1
+      - key: PORT
+        value: "18789"
+      - key: DISCORD_BOT_TOKEN
+        sync: false
+      - key: SLACK_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
