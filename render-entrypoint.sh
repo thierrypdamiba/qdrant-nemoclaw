@@ -113,8 +113,15 @@ start_agent() {
     local agent_home="/sandbox/agent-${user}"
 
     echo "starting agent: ${user} on port ${port}..."
-    su -c "HOME=${agent_home} AGENT_USER=${user} OPENCLAW_GATEWAY_TOKEN=${token} QDRANT_URL=http://127.0.0.1:${QDRANT_BRIDGE_PORT:-6333} QDRANT_COLLECTION=${QDRANT_COLLECTION:-family_memory} NVIDIA_API_KEY=${NVIDIA_API_KEY} openclaw gateway --port ${port}" sandbox &
+    su -c "HOME=${agent_home} AGENT_USER=${user} OPENCLAW_GATEWAY_TOKEN=${token} QDRANT_URL=http://127.0.0.1:${QDRANT_BRIDGE_PORT:-6333} QDRANT_COLLECTION=${QDRANT_COLLECTION:-family_memory} NVIDIA_API_KEY=${NVIDIA_API_KEY} openclaw gateway --port ${port} 2>&1" sandbox &
     echo "agent ${user} started (pid $!)"
+    sleep 1
+    # Check if agent is still running
+    if kill -0 $! 2>/dev/null; then
+        echo "agent ${user} process alive"
+    else
+        echo "WARNING: agent ${user} process died immediately"
+    fi
 }
 
 start_agent "dad" $DAD_PORT "$DAD_TOKEN"
