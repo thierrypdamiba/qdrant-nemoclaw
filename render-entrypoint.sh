@@ -51,4 +51,4 @@ CONF
 chown sandbox:sandbox /sandbox/.openclaw-data/openclaw.json
 
 # Start OpenClaw gateway bound to all interfaces
-exec su -c "openclaw serve --host 0.0.0.0 --port ${PORT:-18789}" sandbox
+exec su -c "openclaw gateway --host 0.0.0.0 --port ${PORT:-18789}" sandbox
