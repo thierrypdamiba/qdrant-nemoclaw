@@ -54,12 +54,14 @@ cat > /sandbox/.openclaw/openclaw.json <<CONF
     "port": ${PORT:-18789},
     "mode": "local",
     "bind": "lan",
+    "trustedProxies": ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"],
     "auth": {
       "mode": "token",
       "token": "${GATEWAY_TOKEN:-nemoclaw-demo-2026}"
     },
     "controlUi": {
-      "allowedOrigins": ["https://nemoclaw-4xdu.onrender.com", "http://localhost:18789", "http://127.0.0.1:18789"]
+      "allowedOrigins": ["https://nemoclaw-4xdu.onrender.com", "http://localhost:18789", "http://127.0.0.1:18789"],
+      "token": "${GATEWAY_TOKEN:-nemoclaw-demo-2026}"
     }
   },
   "plugins": {
