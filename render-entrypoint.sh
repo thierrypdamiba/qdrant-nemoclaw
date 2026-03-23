@@ -13,8 +13,8 @@ for i in $(seq 1 30); do
     sleep 0.5
 done
 
-# --- 2. Generate gateway token ---
-GATEWAY_TOKEN=$(head -c 32 /dev/urandom | base64 | tr -d '/+=' | head -c 32)
+# --- 2. Use env token or disable auth for demo ---
+GATEWAY_TOKEN="${GATEWAY_TOKEN:-}"
 
 # --- 3. Install plugin ---
 su -c "HOME=/sandbox openclaw plugins install /opt/qdrant-memory" sandbox 2>&1 || true
@@ -55,11 +55,11 @@ cat > /sandbox/.openclaw/openclaw.json <<CONF
     "mode": "local",
     "bind": "lan",
     "auth": {
-      "mode": "token",
-      "token": "${GATEWAY_TOKEN}"
+      "mode": "password",
+      "password": "${GATEWAY_PASSWORD:-demo}"
     },
     "controlUi": {
-      "allowedOrigins": ["https://nemoclaw-4xdu.onrender.com"]
+      "allowedOrigins": ["https://nemoclaw-4xdu.onrender.com", "http://localhost:18789", "http://127.0.0.1:18789"]
     }
   },
   "plugins": {
@@ -105,4 +105,4 @@ chown -R sandbox:sandbox /sandbox
 echo "config written, starting gateway on port ${PORT:-18789}..."
 
 # --- 5. Start OpenClaw gateway ---
-exec su -c "HOME=/sandbox OPENCLAW_GATEWAY_TOKEN=${GATEWAY_TOKEN} AGENT_USER=family QDRANT_URL=http://127.0.0.1:${QDRANT_BRIDGE_PORT:-6333} QDRANT_COLLECTION=${QDRANT_COLLECTION:-family_memory} NVIDIA_API_KEY=${NVIDIA_API_KEY} openclaw gateway --port ${PORT:-18789}" sandbox
+exec su -c "HOME=/sandbox OPENCLAW_GATEWAY_PASSWORD=${GATEWAY_PASSWORD:-demo} AGENT_USER=family QDRANT_URL=http://127.0.0.1:${QDRANT_BRIDGE_PORT:-6333} QDRANT_COLLECTION=${QDRANT_COLLECTION:-family_memory} NVIDIA_API_KEY=${NVIDIA_API_KEY} openclaw gateway --port ${PORT:-18789} --password ${GATEWAY_PASSWORD:-demo}" sandbox
