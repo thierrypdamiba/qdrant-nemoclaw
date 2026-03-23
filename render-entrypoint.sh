@@ -52,7 +52,7 @@ cat > /sandbox/.openclaw/openclaw.json <<CONF
   },
   "gateway": {
     "port": ${PORT:-18789},
-    "mode": "remote",
+    "mode": "local",
     "bind": "lan",
     "trustedProxies": ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"],
     "auth": {
@@ -106,4 +106,4 @@ chown -R sandbox:sandbox /sandbox
 echo "config written, starting gateway on port ${PORT:-18789}..."
 
 # --- 5. Start OpenClaw gateway ---
-exec su -c "HOME=/sandbox OPENCLAW_GATEWAY_TOKEN=${GATEWAY_TOKEN:-nemoclaw-demo-2026} AGENT_USER=family QDRANT_URL=http://127.0.0.1:${QDRANT_BRIDGE_PORT:-6333} QDRANT_COLLECTION=${QDRANT_COLLECTION:-family_memory} NVIDIA_API_KEY=${NVIDIA_API_KEY} openclaw gateway --port ${PORT:-18789}" sandbox
+exec su -c "HOME=/sandbox OPENCLAW_GATEWAY_TOKEN=${GATEWAY_TOKEN:-nemoclaw-demo-2026} AGENT_USER=family QDRANT_URL=http://127.0.0.1:${QDRANT_BRIDGE_PORT:-6333} QDRANT_COLLECTION=${QDRANT_COLLECTION:-family_memory} NVIDIA_API_KEY=${NVIDIA_API_KEY} openclaw gateway --port ${PORT:-18789} --allow-remote-connections" sandbox
