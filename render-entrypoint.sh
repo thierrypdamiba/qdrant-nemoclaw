@@ -57,6 +57,9 @@ cat > /sandbox/.openclaw/openclaw.json <<CONF
     "auth": {
       "mode": "token",
       "token": "${GATEWAY_TOKEN}"
+    },
+    "controlUi": {
+      "allowedOrigins": ["https://nemoclaw-4xdu.onrender.com"]
     }
   },
   "plugins": {
