@@ -60,8 +60,7 @@ cat > /sandbox/.openclaw/openclaw.json <<CONF
       "token": "${GATEWAY_TOKEN:-nemoclaw-demo-2026}"
     },
     "controlUi": {
-      "allowedOrigins": ["https://nemoclaw-4xdu.onrender.com", "http://localhost:18789", "http://127.0.0.1:18789"],
-      "token": "${GATEWAY_TOKEN:-nemoclaw-demo-2026}"
+      "allowedOrigins": ["https://nemoclaw-4xdu.onrender.com", "http://localhost:18789", "http://127.0.0.1:18789"]
     }
   },
   "plugins": {
