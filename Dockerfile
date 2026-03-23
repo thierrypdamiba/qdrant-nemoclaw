@@ -1,4 +1,4 @@
-FROM node:22-slim AS builder
+FROM node:22-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 python3-pip python3-venv curl git iproute2 ca-certificates \
@@ -19,7 +19,6 @@ RUN git clone --depth 1 https://github.com/NVIDIA/NemoClaw.git /tmp/nemoclaw \
 
 # Copy deployment config
 COPY render-entrypoint.sh /usr/local/bin/render-entrypoint.sh
-COPY blueprint.yaml /app/blueprint.yaml
 RUN chmod +x /usr/local/bin/render-entrypoint.sh
 
 # Create sandbox user
